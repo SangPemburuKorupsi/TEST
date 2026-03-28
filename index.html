@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>🌌 Harvest Overdrive: Aurora Final Fix</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&family=Fredoka:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --p: #2ecc71; --s: #f1c40f; --accent: #9b59b6;
+            --white: rgba(255, 255, 255, 0.95);
+            --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Outfit', sans-serif; -webkit-tap-highlight-color: transparent; }
+        
+        body { 
+            background: linear-gradient(-45deg, #0f0c29, #302b63, #24243e, #00b09b);
+            background-size: 400% 400%;
+            animation: auroraBG 15s ease infinite;
+            color: #2d3436; height: 100vh; overflow: hidden; display: flex; flex-direction: column; 
+        }
+
+        @keyframes auroraBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .top-nav { padding: 15px 20px 5px 20px; flex-shrink: 0; }
+        .user-row { margin-bottom: 8px; }
+        .user-name-display { 
+            font-family: 'Fredoka', sans-serif; font-size: 1.4rem; color: white;
+            text-shadow: 0 0 10px rgba(255,255,255,0.3);
+        }
+        .stats-row { 
+            display: flex; justify-content: space-between; align-items: center; 
+            background: rgba(255,255,255,0.15); backdrop-filter: blur(10px);
+            padding: 10px 15px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.2);
+        }
+        .chip { display: flex; align-items: center; gap: 5px; color: white; font-weight: 700; font-size: 0.9rem; }
+
+        /* Seed Bar */
+        .seed-bar-top {
+            display: flex; gap: 10px; overflow-x: auto; padding: 10px 20px;
+            scrollbar-width: none; flex-shrink: 0; min-height: 55px;
+        }
+        .seed-bar-top::-webkit-scrollbar { display: none; }
+        .seed-pill {
+            padding: 8px 15px; background: rgba(255,255,255,0.2); border-radius: 50px;
+            white-space: nowrap; font-size: 0.85rem; font-weight: 700; cursor: pointer;
+            color: white; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(5px);
+            transition: 0.2s;
+        }
+        .seed-pill.active { background: var(--p); box-shadow: 0 0 15px var(--p); border-color: transparent; }
+
+        /* Sidebar & Layout Fix */
+        .viewport { flex: 1; display: flex; overflow: hidden; border-top: 1px solid rgba(255,255,255,0.1); }
+        .sidebar {
+            width: 70px; background: rgba(255,255,255,0.1); backdrop-filter: blur(15px);
+            display: flex; flex-direction: column; align-items: center; padding: 15px 0; gap: 12px;
+            flex-shrink: 0; overflow-y: auto;
+        }
+        .nav-btn {
+            width: 45px; height: 45px; border-radius: 12px; border: none;
+            background: rgba(255,255,255,0.15); font-size: 1.3rem; cursor: pointer; transition: 0.2s; color: white;
+        }
+        .nav-btn.active { background: var(--p); transform: scale(1.05); box-shadow: 0 0 12px var(--p); }
+
+        /* Fix Mentok Content */
+        .content { 
+            flex: 1; 
+            padding: 15px; 
+            overflow-y: auto; 
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 80px; 
+        }
+        .page { display: none; padding-bottom: 30px; }
+        .page.active { display: block; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Farm Grid */
+        .farm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+        .plot {
+            background: var(--white); border-radius: 18px; padding: 12px; text-align: center;
+            box-shadow: var(--shadow); cursor: pointer; min-height: 110px;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+        .plot.empty { background: rgba(255,255,255,0.3); border: 2px dashed white; box-shadow: none; }
+        .plot-icon { font-size: 2.2rem; display: block; }
+        .timer-text { font-weight: 800; color: #d35400; font-size: 1rem; margin-top: 4px; }
+
+        /* Cards & Inventory */
+        .card-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+        .item-card {
+            background: var(--white); padding: 15px; border-radius: 18px;
+            display: flex; justify-content: space-between; align-items: center; box-shadow: var(--shadow);
+            margin-bottom: 8px; cursor: pointer;
+        }
+        #inventoryList { display: flex; flex-direction: column; width: 100%; }
+
+        .animal-sec { 
+            background: white; padding: 15px; border-radius: 18px; margin-bottom: 12px; 
+            box-shadow: var(--shadow); text-align: center;
+        }
+
+        /* Modal UI */
+        .modal {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+            display: none; place-items: center; z-index: 2000; backdrop-filter: blur(8px);
+        }
+        .modal-content { background: white; padding: 25px; border-radius: 20px; width: 85%; max-width: 350px; overflow: hidden; }
+        .input-box { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 10px; font-size: 1rem; }
+
+        .btn { padding: 12px; border-radius: 10px; border: none; font-weight: 700; cursor: pointer; transition: 0.2s; }
+        .btn-p { background: var(--p); color: white; width: 100%; }
+        .btn-s { background: var(--s); color: #333; padding: 8px 15px; }
+        .btn-danger { background: #e74c3c; color: white; width: 100%; margin-top: 10px; }
+        
+        #toast {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            background: white; padding: 12px 25px; border-radius: 50px; z-index: 3000; 
+            display: none; font-weight: 700; box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        /* Detail Inventory Styles */
+        .item-detail { text-align: center; }
+        .detail-icon { font-size: 4.5rem; margin: 10px 0; }
+        .detail-name { font-family: 'Fredoka', sans-serif; font-size: 1.5rem; margin-bottom: 5px; }
+        .detail-price { color: var(--p); font-weight: 700; font-size: 1.1rem; margin-bottom: 15px; }
+        .detail-desc { color: #666; font-size: 0.9rem; margin-bottom: 20px; line-height: 1.4; }
+
+        /* Settings Style */
+        .credit-box { background: #f8f9fa; border-radius: 15px; padding: 15px; text-align: left; margin-top: 10px; border-left: 5px solid var(--p); }
+        .redeem-box { background: #fff3cd; padding: 15px; border-radius: 15px; margin-top: 15px; border: 1px dashed #ffc107; }
+    </style>
+</head>
+<body>
+
+<div id="toast"></div>
+
+<div id="nameModal" class="modal" style="display: grid;">
+    <div class="modal-content">
+        <h2>Halo Petani! 👩‍🌾</h2>
+        <p>Siapa nama ladangmu?</p>
+        <input type="text" id="userNameInput" class="input-box" placeholder="Contoh: Ladang Berkah" maxlength="15">
+        <button class="btn btn-p" onclick="saveName()">Buka Ladang</button>
+    </div>
+</div>
+
+<div id="transferModal" class="modal">
+    <div class="modal-content" style="text-align: center;">
+        <h2>📺 Sponsor Iklan</h2>
+        <p id="adTimerMsg">Tonton iklan <b id="adTimer">30</b> detik untuk $500</p>
+        <div id="adCooldownMsg" style="display:none; color: red; font-weight: bold;"></div>
+        <button class="btn btn-p" id="btnClaimAd" style="display:none;" onclick="claimAdReward()">Ambil Uang</button>
+        <button class="btn btn-s" style="margin-top:10px; width:100%" onclick="closeModal('transferModal')">Tutup</button>
+    </div>
+</div>
+
+<div id="itemModal" class="modal">
+    <div class="modal-content item-detail">
+        <div class="detail-icon" id="dIcon">🌾</div>
+        <h2 class="detail-name" id="dName">Nama Item</h2>
+        <div class="detail-price" id="dPrice">$0</div>
+        <p style="font-weight: 700; margin-bottom: 5px;" id="dQty">Stok: 0</p>
+        <p class="detail-desc" id="dText">Deskripsi item...</p>
+        
+        <div style="display: flex; gap: 10px;">
+            <button class="btn btn-p" id="btnSellOne">Jual x1</button>
+            <button class="btn btn-s" onclick="closeModal('itemModal')">Tutup</button>
+        </div>
+        <button class="btn btn-danger" id="btnSellAll">JUAL SEMUA</button>
+    </div>
+</div>
+
+<header class="top-nav">
+    <div class="user-row">
+        <div class="user-name-display" id="userDisplayName">...</div>
+        <small id="xpLabel" style="color:white; opacity:0.8">Level 1 - XP 0/150</small>
+    </div>
+    <div class="stats-row">
+        <div class="chip">💰 <span id="moneyTxt">100</span></div>
+        <div class="chip">🌤️ <span id="weatherTxt">Aurora</span></div>
+        <div style="display:flex; gap:12px">
+            <span onclick="openAdModal()" style="cursor:pointer; filter: drop-shadow(0 0 5px rgba(255,255,255,0.5))">💸</span>
+        </div>
+    </div>
+</header>
+
+<div class="seed-bar-top" id="seedBar"></div>
+
+<div class="viewport">
+    <aside class="sidebar">
+        <button class="nav-btn active" onclick="tab('farm', this)">👨‍🌾</button>
+        <button class="nav-btn" onclick="tab('shop', this)">🛒</button>
+        <button class="nav-btn" onclick="tab('coop', this)">🐔</button>
+        <button class="nav-btn" onclick="tab('inv', this)">🎒</button>
+        <button class="nav-btn" onclick="tab('settings', this)">⚙️</button>
+    </aside>
+
+    <main class="content">
+        <div id="farm" class="page active">
+            <div class="farm-grid" id="grid"></div>
+        </div>
+
+        <div id="shop" class="page">
+            <h3 style="color:white; margin-bottom:10px">Pasar Benih</h3>
+            <div class="card-grid" id="shopSeeds"></div>
+            
+            <h3 style="color:white; margin:20px 0 10px 0">Alat & Upgrade</h3>
+            <div class="card-grid">
+                <div class="item-card">
+                    <div><b>🧪 Pupuk</b><br><small>$20</small></div>
+                    <button class="btn btn-s" onclick="buyUtil('fertilizer', 20)">Beli</button>
+                </div>
+                <div class="item-card">
+                    <div><b>📦 Pakan</b><br><small>$25 (+5)</small></div>
+                    <button class="btn btn-s" onclick="buyUtil('feed', 25)">Beli</button>
+                </div>
+                <div class="item-card">
+                    <div><b>🚜 Traktor</b><br><small>$500 (+1 Lahan)</small></div>
+                    <button class="btn btn-s" onclick="expandFarm()">Beli</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="coop" class="page">
+            <div class="animal-sec">
+                <span style="font-size:2.5rem">🐔</span>
+                <h3>Kandang Ayam</h3>
+                <p>Ayam: <b id="countChicken">0</b> | Telur: <b id="countEgg">0</b></p>
+                <button class="btn btn-p" onclick="addChicken()">Beli Ayam ($50)</button>
+                <small style="display:block; margin-top:5px; color:#666">Otomatis bertelur (Butuh 1 Pakan)</small>
+            </div>
+            <div class="animal-sec">
+                <span style="font-size:2.5rem">🐄</span>
+                <h3>Peternakan Sapi</h3>
+                <p>Sapi: <b id="countCow">0</b> | Susu: <b id="countMilk">0</b></p>
+                <button class="btn btn-p" onclick="addCow()">Beli Sapi ($150)</button>
+                <small style="display:block; margin-top:5px; color:#666">Otomatis memerah (Butuh 1 Pakan)</small>
+            </div>
+            <div class="animal-sec">
+                <span style="font-size:2.5rem">🐝</span>
+                <h3>Kebun Lebah</h3>
+                <p>Sarang: <b id="countBee">0</b> | Madu: <b id="countHoney">0</b></p>
+                <button class="btn btn-p" onclick="addBee()">Beli Sarang ($200)</button>
+                <small style="display:block; margin-top:5px; color:#666">Otomatis (Tanpa Pakan)</small>
+            </div>
+        </div>
+
+        <div id="inv" class="page">
+            <h3 style="color:white; margin-bottom:15px">Gudang Hasil Panen</h3>
+            <div id="inventoryList"></div>
+            
+            <div class="item-card" style="margin-top:20px; background: rgba(255,255,255,0.2); color:white">
+                <div><b>Stok Pakan</b></div>
+                <div>📦 <span id="countFeed">0</span></div>
+            </div>
+        </div>
+
+        <div id="settings" class="page">
+            <div class="animal-sec" style="text-align: left;">
+                <h2 style="font-family:'Fredoka'; color:var(--p)">Pengaturan & Kode</h2>
+                
+                <div class="redeem-box">
+                    <p style="font-weight:bold; color:#856404">🎁 Kode Redeem</p>
+                    <input type="text" id="redeemInput" class="input-box" placeholder="Masukkan kode..." style="margin-bottom:5px">
+                    <button class="btn btn-p" onclick="useRedeemCode()">Tukar Kode</button>
+                </div>
+
+                <div class="credit-box">
+                    <p><b>Developer:</b> CreateBy RANDI</p>
+                    <p><b>Versi:</b> 2.5.2 Pro Farm</p>
+                    <p><b>Keamanan:</b> ✅ Data Enkripsi Lokal</p>
+                </div>
+                <button class="btn btn-danger" onclick="reset()">RESET GAME & HAPUS DATA</button>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+    const ITEMS = [
+        // --- LEVEL 1-5 (Cepat & Murah) ---
+        { id: 'padi', name: 'Padi', icon: '🌾', buy: 10, sell: 25, time: 10, xp: 10, desc: "Pangan pokok sejuta umat." },
+        { id: 'spinach', name: 'Bayam', icon: '🍃', buy: 15, sell: 40, time: 15, xp: 15, desc: "Kaya zat besi, favorit Popeye." },
+        { id: 'wortel', name: 'Wortel', icon: '🥕', buy: 20, sell: 55, time: 20, xp: 20, desc: "Bagus untuk penglihatan petani." },
+        { id: 'lettuce', name: 'Selada', icon: '🥬', buy: 25, sell: 65, time: 25, xp: 25, desc: "Cocok buat lalapan atau salad." },
+        { id: 'potato', name: 'Kentang', icon: '🥔', buy: 30, sell: 80, time: 30, xp: 30, desc: "Bahan dasar French Fries." },
+        { id: 'celery', name: 'Seledri', icon: '🌿', buy: 35, sell: 95, time: 35, xp: 35, desc: "Pengharum masakan." },
+        { id: 'tomato', name: 'Tomat', icon: '🍅', buy: 40, sell: 110, time: 40, xp: 40, desc: "Buah atau sayur? Entahlah." },
+        { id: 'onion', name: 'Bawang', icon: '🧅', buy: 45, sell: 125, time: 45, xp: 45, desc: "Bikin nangis kalau dipotong." },
+        { id: 'straw', name: 'Strawberry', icon: '🍓', buy: 50, sell: 140, time: 50, xp: 50, desc: "Buah manis yang cantik." },
+        { id: 'corn', name: 'Jagung', icon: '🌽', buy: 55, sell: 160, time: 55, xp: 55, desc: "Manis dan bergizi." },
+
+        // --- LEVEL 6-15 (Menengah) ---
+        { id: 'garlic', name: 'Bawang Putih', icon: '🧄', buy: 60, sell: 180, time: 60, xp: 60, desc: "Anti vampir alami." },
+        { id: 'wheat', name: 'Gandum', icon: '🌾', buy: 70, sell: 210, time: 70, xp: 70, desc: "Bahan roti premium." },
+        { id: 'broccoli', name: 'Brokoli', icon: '🥦', buy: 80, sell: 245, time: 80, xp: 80, desc: "Sayuran super hijau." },
+        { id: 'cherry', name: 'Cherry', icon: '🍒', buy: 90, sell: 280, time: 90, xp: 90, desc: "Kecil tapi menguntungkan." },
+        { id: 'eggplant', name: 'Terong', icon: '🍆', buy: 100, sell: 320, time: 100, xp: 100, desc: "Warna ungu yang estetik." },
+        { id: 'apple', name: 'Apel', icon: '🍎', buy: 110, sell: 360, time: 110, xp: 110, desc: "Buah klasik penyegar hari." },
+        { id: 'melon', name: 'Semangka', icon: '🍉', buy: 125, sell: 420, time: 120, xp: 125, desc: "Berat dan sangat berair." },
+        { id: 'grape', name: 'Anggur', icon: '🍇', buy: 140, sell: 480, time: 130, xp: 140, desc: "Buah bangsawan." },
+        { id: 'chili', name: 'Cabai', icon: '🌶️', buy: 150, sell: 520, time: 140, xp: 150, desc: "Pedas di lidah, manis di saldo." },
+        { id: 'kiwi', name: 'Kiwi', icon: '🥝', buy: 165, sell: 580, time: 155, xp: 165, desc: "Asam segar dari NZ." },
+        { id: 'mango', name: 'Mangga', icon: '🥭', buy: 180, sell: 650, time: 170, xp: 180, desc: "Raja buah tropis." },
+        { id: 'peach', name: 'Persik', icon: '🍑', buy: 200, sell: 750, time: 190, xp: 200, desc: "Lembut dan sangat wangi." },
+        { id: 'cucumber', name: 'Timun', icon: '🥒', buy: 220, sell: 850, time: 210, xp: 220, desc: "Segar dan menghidrasi." },
+        { id: 'orange', name: 'Jeruk', icon: '🍊', buy: 250, sell: 980, time: 230, xp: 250, desc: "Vitamin C dosis tinggi." },
+        { id: 'pine', name: 'Nanas', icon: '🍍', buy: 280, sell: 1100, time: 250, xp: 280, desc: "Ratu buah tropis bersisik." },
+        { id: 'banana', name: 'Pisang', icon: '🍌', buy: 310, sell: 1250, time: 270, xp: 310, desc: "Favorit para atlet." },
+        { id: 'pear', name: 'Pir', icon: '🍐', buy: 340, sell: 1400, time: 290, xp: 340, desc: "Berair dan renyah." },
+        { id: 'lemon', name: 'Lemon', icon: '🍋', buy: 370, sell: 1550, time: 310, xp: 370, desc: "Kecutnya bikin mata melek." },
+        { id: 'padi_emas', name: 'Padi Unggul', icon: '🌾', buy: 400, sell: 1700, time: 330, xp: 400, desc: "Hasil riset laboratorium." },
+        { id: 'ginger', name: 'Jahe', icon: '🫚', buy: 430, sell: 1850, time: 350, xp: 430, desc: "Penghangat badan alami." },
+
+        // --- LEVEL 16-30 (Pro Farmer) ---
+        { id: 'beet', name: 'Bit Merah', icon: '🧶', buy: 460, sell: 2000, time: 370, xp: 460, desc: "Pewarna alami sehat." },
+        { id: 'peanut', name: 'Kacang', icon: '🥜', buy: 500, sell: 2200, time: 390, xp: 500, desc: "Gurih buat camilan." },
+        { id: 'soybean', name: 'Kedelai', icon: '🫘', buy: 550, sell: 2450, time: 410, xp: 550, desc: "Bahan baku tempe tahu." },
+        { id: 'yam', name: 'Ubi Jalar', icon: '🍠', buy: 600, sell: 2700, time: 430, xp: 600, desc: "Karbohidrat manis." },
+        { id: 'cauli', name: 'Kembang Kol', icon: '🥦', buy: 650, sell: 3000, time: 450, xp: 650, desc: "Kembaran brokoli putih." },
+        { id: 'papaya', name: 'Pepaya', icon: '🍈', buy: 700, sell: 3300, time: 480, xp: 700, desc: "Lancar pencernaan." },
+        { id: 'guava', name: 'Jambu Biji', icon: '🍈', buy: 750, sell: 3600, time: 510, xp: 750, desc: "Musuh bebuyutan DBD." },
+        { id: 'starfruit', name: 'Belimbing', icon: '⭐', buy: 800, sell: 3900, time: 540, xp: 800, desc: "Bentuk bintang unik." },
+        { id: 'mungbean', name: 'Kacang Hijau', icon: '🫛', buy: 850, sell: 4200, time: 570, xp: 850, desc: "Enak dibikin bubur." },
+        { id: 'sugar', name: 'Tebu', icon: '🎋', buy: 900, sell: 4500, time: 600, xp: 900, desc: "Manisnya alami." },
+        { id: 'manggis', name: 'Manggis', icon: '🫐', buy: 1000, sell: 5100, time: 650, xp: 1000, desc: "Ratu buah tropis." },
+        { id: 'lychee', name: 'Leci', icon: '🍒', buy: 1100, sell: 5700, time: 700, xp: 1100, desc: "Segar buat es teh." },
+        { id: 'avocado', name: 'Alpukat', icon: '🥑', buy: 1200, sell: 6400, time: 750, xp: 1200, desc: "Lemak sehat yang enak." },
+        { id: 'longan', name: 'Kelengkeng', icon: '🥥', buy: 1300, sell: 7100, time: 800, xp: 1300, desc: "Manis legi aromatik." },
+        { id: 'petai', name: 'Petai', icon: '🫛', buy: 1400, sell: 7800, time: 850, xp: 1400, desc: "Sahabat sejatinya sambal." },
+        { id: 'jengkol', name: 'Jengkol', icon: '🌰', buy: 1500, sell: 8500, time: 900, xp: 1500, desc: "Baunya juara rasa surga." },
+        { id: 'coco', name: 'Kelapa', icon: '🥥', buy: 1650, sell: 9500, time: 1000, xp: 1650, desc: "Segar di pinggir pantai." },
+        { id: 'cotton', name: 'Kapas', icon: '☁️', buy: 1800, sell: 10500, time: 1100, xp: 1800, desc: "Bahan pakaian lembut." },
+        { id: 'tobacco', name: 'Tembakau', icon: '🌿', buy: 2000, sell: 12000, time: 1200, xp: 2000, desc: "Komoditas industri." },
+        { id: 'coffee', name: 'Kopi', icon: '☕', buy: 2200, sell: 13500, time: 1300, xp: 2200, desc: "Kafein petani rajin." },
+
+        // --- LEVEL 31-50 (Tuan Tanah) ---
+        { id: 'tea', name: 'Teh', icon: '🍃', buy: 2500, sell: 15500, time: 1400, xp: 2500, desc: "Penenun ketenangan." },
+        { id: 'cocoa', name: 'Cokelat', icon: '🍫', buy: 2800, sell: 18000, time: 1500, xp: 2800, desc: "Bahan dasar bahagia." },
+        { id: 'jackfruit', name: 'Nangka', icon: '🍈', buy: 3100, sell: 21000, time: 1600, xp: 3100, desc: "Baunya harum getah lengket." },
+        { id: 'sawit', name: 'Sawit', icon: '🥥', buy: 3500, sell: 25000, time: 1800, xp: 3500, desc: "Emas hijau profit maksimal." },
+        { id: 'rubber', name: 'Karet', icon: '🌳', buy: 4000, sell: 29000, time: 2000, xp: 4000, desc: "Getahnya mahal harganya." },
+        { id: 'clove', name: 'Cengkeh', icon: '🍂', buy: 4500, sell: 33000, time: 2200, xp: 4500, desc: "Rempah aromatik kering." },
+        { id: 'durian', name: 'Durian', icon: '🍈', buy: 5000, sell: 38000, time: 2400, xp: 5000, desc: "Baunya hebat harga mantap." },
+        { id: 'olive', name: 'Zaitun', icon: '🫒', buy: 5500, sell: 43000, time: 2600, xp: 5500, desc: "Minyak paling sehat." },
+        { id: 'hazelnut', name: 'Hazelnut', icon: '🌰', buy: 6000, sell: 48000, time: 2800, xp: 6000, desc: "Cocok buat selai cokelat." },
+        { id: 'walnut', name: 'Walnut', icon: '🥜', buy: 6500, sell: 54000, time: 3000, xp: 6500, desc: "Kacang berbentuk otak." },
+        { id: 'pistachio', name: 'Pistachio', icon: '🥜', buy: 7000, sell: 60000, time: 3200, xp: 7000, desc: "Hijau mewah harga wow." },
+        { id: 'vanilla', name: 'Vanili', icon: '🎋', buy: 8000, sell: 70000, time: 3600, xp: 8000, desc: "Emas hijau sangat mahal." },
+        { id: 'truffle', name: 'Truffle', icon: '🍄', buy: 10000, sell: 90000, time: 4500, xp: 10000, desc: "Jamur termahal dunia." },
+        { id: 'ginseng', name: 'Ginseng', icon: '🥕', buy: 12000, sell: 110000, time: 5400, xp: 12000, desc: "Akar umur panjang." },
+        { id: 'durian_musang', name: 'Durian Musang', icon: '🍈', buy: 15000, sell: 140000, time: 7200, xp: 15000, desc: "Rajanya durian sultan." },
+
+        // --- BIBIT-BIBIT TAMBAHAN (LENGKAP 100) ---
+        { id: 'cabbage', name: 'Kubis', icon: '🥬', buy: 42, sell: 115, time: 42, xp: 42, desc: "Bahan kol goreng." },
+        { id: 'pepper', name: 'Paprika', icon: '🫑', buy: 115, sell: 340, time: 115, xp: 115, desc: "Warna-warni renyah." },
+        { id: 'radish', name: 'Lobak', icon: '🥕', buy: 130, sell: 400, time: 130, xp: 130, desc: "Putih bersih renyah." },
+        { id: 'asp', name: 'Asparagus', icon: '🌱', buy: 210, sell: 650, time: 200, xp: 210, desc: "Sayuran mewah resto." },
+        { id: 'mint', name: 'Daun Mint', icon: '🍃', buy: 75, sell: 240, time: 75, xp: 75, desc: "Sensasi dingin semriwing." },
+        { id: 'basil', name: 'Kemangi', icon: '🌿', buy: 48, sell: 140, time: 48, xp: 48, desc: "Pasangan pas buat lele." },
+        { id: 'turmeric', name: 'Kunyit', icon: '🫚', buy: 145, sell: 500, time: 145, xp: 145, desc: "Bagus untuk jamu." },
+        { id: 'lemon_g', name: 'Serai', icon: '🌿', buy: 52, sell: 170, time: 52, xp: 52, desc: "Bumbu dapur wangi." },
+        { id: 'blueb', name: 'Blueberry', icon: '🫐', buy: 180, sell: 620, time: 180, xp: 180, desc: "Antioksidan tinggi." },
+        { id: 'raspberry', name: 'Raspberry', icon: '🫐', buy: 480, sell: 1550, time: 300, xp: 480, desc: "Asam manis eksotis." },
+        { id: 'blackberry', name: 'Blackberry', icon: '🍇', buy: 580, sell: 1950, time: 340, xp: 580, desc: "Hutan buah liar." },
+        { id: 'cranberry', name: 'Cranberry', icon: '🍒', buy: 650, sell: 2200, time: 380, xp: 650, desc: "Sering jadi selai." },
+        { id: 'apricot', name: 'Aprikot', icon: '🍊', buy: 720, sell: 2500, time: 440, xp: 720, desc: "Kerabat dekat persik." },
+        { id: 'fig', name: 'Buah Tin', icon: '🫐', buy: 1250, sell: 4700, time: 620, xp: 1250, desc: "Buah kuno istimewa." },
+        { id: 'date', name: 'Kurma', icon: '🌴', buy: 4200, sell: 19000, time: 2100, xp: 4200, desc: "Tahan lama sangat manis." },
+        { id: 'wasabi', name: 'Wasabi', icon: '🥦', buy: 2600, sell: 12500, time: 1600, xp: 2600, desc: "Pedas menyengat hidung." },
+        { id: 'lotus', name: 'Teratai', icon: '🪷', buy: 3200, sell: 16000, time: 1900, xp: 3200, desc: "Bunga suci air." },
+        { id: 'pome', name: 'Delima', icon: '🍎', buy: 750, sell: 2800, time: 470, xp: 750, desc: "Butiran merah berharga." },
+        { id: 'dragon', name: 'Buah Naga', icon: '🌵', buy: 850, sell: 3200, time: 520, xp: 850, desc: "Eksotis bersisik." },
+        { id: 'cactus', name: 'Naga Putih', icon: '🌵', buy: 950, sell: 3700, time: 570, xp: 950, desc: "Varian renyah." },
+        { id: 'sunflower', name: 'Bunga Matahari', icon: '🌻', buy: 160, sell: 550, time: 110, xp: 160, desc: "Bisa jadi kuaci." },
+        { id: 'rose', name: 'Mawar', icon: '🌹', buy: 520, sell: 2100, time: 320, xp: 520, desc: "Harum tapi berduri." },
+        { id: 'tulip', name: 'Tulip', icon: '🌷', buy: 320, sell: 1200, time: 220, xp: 320, desc: "Cantik dari Belanda." },
+        { id: 'sweetpot', name: 'Ubi Ungu', icon: '🍠', buy: 85, sell: 230, time: 60, xp: 85, desc: "Manis mengenyangkan." },
+        { id: 'pumpkin', name: 'Labu', icon: '🎃', buy: 1600, sell: 7500, time: 950, xp: 1600, desc: "Besar dan ikonik." },
+        { id: 'herbs', name: 'Rempah', icon: '🌿', buy: 220, sell: 850, time: 160, xp: 220, desc: "Bumbu rahasia dapur." },
+        { id: 'clover', name: 'Semanggi', icon: '🍀', buy: 2100, sell: 10500, time: 1250, xp: 2100, desc: "Membawa untung." },
+        { id: 'bamboo', name: 'Rebung', icon: '🎍', buy: 1150, sell: 5000, time: 680, xp: 1150, desc: "Tumbuh sangat cepat." },
+        { id: 'cinnamon', name: 'Kayu Manis', icon: '🪵', buy: 2300, sell: 9800, time: 1150, xp: 2300, desc: "Kulit kayu wangi." },
+        { id: 'saffron', name: 'Saffron', icon: '🌸', buy: 18000, sell: 150000, time: 8000, xp: 18000, desc: "Emas merah legendaris." },
+        { id: 'crystal', name: 'Pohon Kristal', icon: '💎', buy: 50000, sell: 500000, time: 10000, xp: 50000, desc: "Hanya untuk milyarder." },
+        { id: 'rainbow', name: 'Buah Pelangi', icon: '🌈', buy: 25000, sell: 200000, time: 8500, xp: 25000, desc: "Rasanya berubah-ubah." },
+        { id: 'galaxy', name: 'Bunga Galaksi', icon: '🌌', buy: 85000, sell: 1200000, time: 20000, xp: 85000, desc: "Tumbuh di aurora." },
+        { id: 'magic', name: 'Kacang Ajaib', icon: '🫘', buy: 1000, sell: 1, time: 10, xp: 10000, desc: "XP Booster rahasia." },
+        { id: 'moneytree', name: 'Pohon Duit', icon: '💸', buy: 100000, sell: 3000000, time: 43200, xp: 100000, desc: "Investasi masa tua." }
+    ];
+
+    const PRODUCE = {
+        egg: { name: 'Telur', icon: '🥚', sell: 15, desc: "Segar dari kandang ayam." },
+        milk: { name: 'Susu', icon: '🥛', sell: 45, desc: "Murni dan menyehatkan." },
+        honey: { name: 'Madu', icon: '🍯', sell: 120, desc: "Manis alami dari lebah." }
+    };
+
+    let db = {
+        name: "", money: 100, xp: 0, lvl: 1,
+        plots: Array(3).fill(null).map(() => ({ status: 'empty' })),
+        seeds: { padi: 2 },
+        crops: {},
+        utils: { fertilizer: 0, feed: 5 },
+        coop: { chicken: 0, eggs: 0 },
+        ranch: { cow: 0, milk: 0 },
+        garden: { bee: 0, honey: 0 },
+        selSeed: 'padi',
+        lastAd: 0,
+        usedCodes: []
+    };
+
+    let adTimerInt;
+
+    function openModal(id) { document.getElementById(id).style.display = 'grid'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+    function useRedeemCode() {
+        const inp = document.getElementById('redeemInput').value.toUpperCase();
+        if(db.usedCodes.includes(inp)) return toast("Kode sudah pernah dipakai!");
+        
+        let bonus = 0;
+        if(inp === 'PANEN') bonus = 1000;
+        else if(inp === 'REJEKI') bonus = 5000;
+        else if(inp === 'TAHUNBARU') bonus = 10000;
+        else return toast("Kode tidak valid!");
+
+        db.money += bonus;
+        db.usedCodes.push(inp);
+        document.getElementById('redeemInput').value = '';
+        toast(`Berhasil! Dapat $${bonus}`);
+        refresh();
+    }
+
+    function openAdModal() {
+        openModal('transferModal');
+        const now = Date.now();
+        const diff = now - db.lastAd;
+        const cooldown = 3600000; 
+
+        if (diff < cooldown) {
+            const rem = Math.ceil((cooldown - diff) / 60000);
+            document.getElementById('adTimerMsg').style.display = 'none';
+            document.getElementById('adCooldownMsg').innerText = `Cooldown: ${rem} menit lagi`;
+            document.getElementById('adCooldownMsg').style.display = 'block';
+            document.getElementById('btnClaimAd').style.display = 'none';
+            return;
+        }
+
+        document.getElementById('adCooldownMsg').style.display = 'none';
+        document.getElementById('adTimerMsg').style.display = 'block';
+        document.getElementById('btnClaimAd').style.display = 'none';
+        
+        let timeLeft = 30;
+        document.getElementById('adTimer').innerText = timeLeft;
+        
+        clearInterval(adTimerInt);
+        adTimerInt = setInterval(() => {
+            timeLeft--;
+            document.getElementById('adTimer').innerText = timeLeft;
+            if(timeLeft <= 0) {
+                clearInterval(adTimerInt);
+                document.getElementById('adTimerMsg').style.display = 'none';
+                document.getElementById('btnClaimAd').style.display = 'block';
+            }
+        }, 1000);
+    }
+
+    function claimAdReward() {
+        db.money += 500;
+        db.lastAd = Date.now();
+        toast("Dapat $500 dari Sponsor!");
+        closeModal('transferModal');
+        refresh();
+    }
+
+    function saveName() {
+        const inp = document.getElementById('userNameInput').value;
+        if(inp.length < 3) return toast("Nama minimal 3 karakter!");
+        db.name = inp;
+        closeModal('nameModal');
+        refresh();
+    }
+
+    function tab(id, el) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        el.classList.add('active');
+        refresh();
+    }
+
+    function refresh() {
+        document.getElementById('userDisplayName').innerText = db.name || "Petani";
+        document.getElementById('moneyTxt').innerText = Math.floor(db.money);
+        document.getElementById('xpLabel').innerText = `Level ${db.lvl} - XP ${db.xp}/${db.lvl*150}`;
+        document.getElementById('countFeed').innerText = db.utils.feed;
+
+        const grid = document.getElementById('grid');
+        grid.innerHTML = '';
+        db.plots.forEach((p, i) => {
+            const div = document.createElement('div');
+            div.className = `plot ${p.status === 'empty' ? 'empty' : ''}`;
+            if (p.status === 'empty') {
+                div.innerHTML = `<span class="plot-icon">🍃</span>`;
+                div.onclick = () => plant(i);
+            } else if (p.status === 'growing') {
+                const item = ITEMS.find(x => x.id === p.id);
+                const rem = Math.max(0, Math.ceil((p.start + p.time - Date.now()) / 1000));
+                div.innerHTML = `<span class="plot-icon">${item.icon}</span><div class="timer-text">${rem}s</div>`;
+            } else {
+                const item = ITEMS.find(x => x.id === p.id);
+                div.innerHTML = `<span class="plot-icon">${item.icon}</span><b style="color:var(--p)">PANEN!</b>`;
+                div.onclick = () => harvest(i);
+            }
+            grid.appendChild(div);
+        });
+
+        const bar = document.getElementById('seedBar');
+        bar.innerHTML = '';
+        Object.keys(db.seeds).forEach(sid => {
+            if(db.seeds[sid] > 0) {
+                const item = ITEMS.find(x => x.id === sid);
+                const pill = document.createElement('div');
+                pill.className = `seed-pill ${db.selSeed === sid ? 'active' : ''}`;
+                pill.innerHTML = `${item.icon} ${db.seeds[sid]}`;
+                pill.onclick = () => { db.selSeed = sid; refresh(); };
+                bar.appendChild(pill);
+            }
+        });
+
+        const sShop = document.getElementById('shopSeeds');
+        sShop.innerHTML = '';
+        ITEMS.forEach(item => {
+            sShop.innerHTML += `<div class="item-card"><div><b>${item.icon} ${item.name}</b><br><small>$${item.buy}</small></div><button class="btn btn-s" onclick="buySeed('${item.id}', ${item.buy})">Beli</button></div>`;
+        });
+
+        document.getElementById('countChicken').innerText = db.coop.chicken;
+        document.getElementById('countEgg').innerText = db.coop.eggs;
+        document.getElementById('countCow').innerText = db.ranch.cow;
+        document.getElementById('countMilk').innerText = db.ranch.milk;
+        document.getElementById('countBee').innerText = db.garden.bee;
+        document.getElementById('countHoney').innerText = db.garden.honey;
+
+        updateInventory();
+        save();
+    }
+
+    function plant(i) {
+        if (!db.seeds[db.selSeed]) return toast("Pilih benih!");
+        const item = ITEMS.find(x => x.id === db.selSeed);
+        db.seeds[db.selSeed]--;
+        db.plots[i] = { id: db.selSeed, status: 'growing', start: Date.now(), time: item.time * 1000 };
+        refresh();
+    }
+
+    function harvest(i) {
+        const item = ITEMS.find(x => x.id === db.plots[i].id);
+        db.crops[item.id] = (db.crops[item.id] || 0) + 1;
+        db.xp += item.xp;
+        db.plots[i] = { status: 'empty' };
+        if (db.xp >= db.lvl * 150) { db.xp = 0; db.lvl++; toast("LEVEL UP! 🚀"); }
+        refresh();
+    }
+
+    function buySeed(id, price) {
+        if (db.money >= price) { db.money -= price; db.seeds[id] = (db.seeds[id] || 0) + 1; refresh(); } 
+        else toast("Uang kurang!");
+    }
+
+    function buyUtil(type, price) {
+        if (db.money >= price) { 
+            db.money -= price; 
+            if(type === 'feed') db.utils.feed += 5; else db.utils[type]++; 
+            refresh(); 
+        } else toast("Uang kurang!");
+    }
+
+    function expandFarm() {
+        if(db.money >= 500) { db.money -= 500; db.plots.push({status:'empty'}); refresh(); } 
+        else toast("Uang kurang!");
+    }
+
+    function addChicken() { if(db.money >= 50) { db.money -= 50; db.coop.chicken++; refresh(); } }
+    function addCow() { if(db.money >= 150) { db.money -= 150; db.ranch.cow++; refresh(); } }
+    function addBee() { if(db.money >= 200) { db.money -= 200; db.garden.bee++; refresh(); } }
+
+    function updateInventory() {
+        const inv = document.getElementById('inventoryList');
+        inv.innerHTML = '';
+        Object.keys(db.crops).forEach(id => { if(db.crops[id] > 0) createInvCard(id, 'crop'); });
+        const livestock = { egg: db.coop.eggs, milk: db.ranch.milk, honey: db.garden.honey };
+        Object.keys(livestock).forEach(key => { if(livestock[key] > 0) createInvCard(key, 'produce'); });
+        if(inv.innerHTML === '') inv.innerHTML = '<p style="color:white; opacity:0.5; text-align:center; padding:20px">Inventory Kosong</p>';
+    }
+
+    function createInvCard(id, type) {
+        const item = type === 'crop' ? ITEMS.find(x => x.id === id) : PRODUCE[id];
+        let qty = type === 'crop' ? db.crops[id] : (id === 'egg' ? db.coop.eggs : (id === 'milk' ? db.ranch.milk : db.garden.honey));
+        const div = document.createElement('div');
+        div.className = 'item-card';
+        div.innerHTML = `<div><b>${item.icon} ${item.name}</b><br><small>Stok: ${qty}</small></div><span>Lihat Detail ›</span>`;
+        div.onclick = () => openItemDetail(id, type, qty);
+        document.getElementById('inventoryList').appendChild(div);
+    }
+
+    function openItemDetail(id, type, qty) {
+        const item = type === 'crop' ? ITEMS.find(x => x.id === id) : PRODUCE[id];
+        document.getElementById('dIcon').innerText = item.icon;
+        document.getElementById('dName').innerText = item.name;
+        document.getElementById('dPrice').innerText = "Harga Jual: $" + item.sell;
+        document.getElementById('dQty').innerText = "Stok: " + qty;
+        document.getElementById('dText').innerText = item.desc;
+        document.getElementById('btnSellOne').onclick = () => sellLogic(id, type, 1);
+        document.getElementById('btnSellAll').onclick = () => sellLogic(id, type, qty);
+        openModal('itemModal');
+    }
+
+    function sellLogic(id, type, count) {
+        const item = type === 'crop' ? ITEMS.find(x => x.id === id) : PRODUCE[id];
+        let available = 0;
+        if(type === 'crop') available = db.crops[id];
+        else {
+            if(id === 'egg') available = db.coop.eggs;
+            if(id === 'milk') available = db.ranch.milk;
+            if(id === 'honey') available = db.garden.honey;
+        }
+        if(available < count) return;
+        db.money += count * item.sell;
+        if(type === 'crop') db.crops[id] -= count;
+        else {
+            if(id === 'egg') db.coop.eggs -= count;
+            if(id === 'milk') db.ranch.milk -= count;
+            if(id === 'honey') db.garden.honey -= count;
+        }
+        toast(`Terjual ${count}x ${item.name}!`);
+        closeModal('itemModal');
+        refresh();
+    }
+
+    // LOGIKA PRODUKSI OTOMATIS & TIMER PANEN
+    function loop() {
+        setInterval(() => {
+            let needsRefresh = false;
+
+            // 1. Timer Tanaman (Animasi Hitung Mundur)
+            db.plots.forEach(p => {
+                if (p.status === 'growing') {
+                    if (Date.now() - p.start >= p.time) {
+                        p.status = 'ready';
+                    }
+                    needsRefresh = true; // Selalu refresh pas lagi 'growing' biar detiknya jalan
+                }
+            });
+
+            // 2. Produksi Otomatis Ayam (Butuh Pakan)
+            if (db.coop.chicken > 0 && db.utils.feed > 0) {
+                db.coop.eggs += db.coop.chicken;
+                db.utils.feed = Math.max(0, db.utils.feed - 1);
+                needsRefresh = true;
+            }
+
+            // 3. Produksi Otomatis Sapi (Butuh Pakan)
+            if (db.ranch.cow > 0 && db.utils.feed > 0) {
+                db.ranch.milk += db.ranch.cow;
+                db.utils.feed = Math.max(0, db.utils.feed - 1);
+                needsRefresh = true;
+            }
+
+            // 4. Produksi Otomatis Lebah (Gak Butuh Pakan)
+            if (db.garden.bee > 0) {
+                db.garden.honey += db.garden.bee;
+                needsRefresh = true;
+            }
+
+            if (needsRefresh) refresh();
+        }, 5000); // Produksi tiap 5 detik
+        
+        // Interval khusus timer (biar smooth per detik)
+        setInterval(() => {
+            let activeGrow = db.plots.some(p => p.status === 'growing');
+            if(activeGrow) refresh();
+        }, 1000);
+    }
+
+    function toast(m) {
+        const t = document.getElementById('toast');
+        t.innerText = m; t.style.display = 'block';
+        setTimeout(() => t.style.display = 'none', 2000);
+    }
+
+    function save() { localStorage.setItem('harvest_aurora_final', JSON.stringify(db)); }
+    function init() {
+        const saved = localStorage.getItem('harvest_aurora_final');
+        if(saved) { 
+            let loadedData = JSON.parse(saved);
+            db = {...db, ...loadedData}; 
+            document.getElementById('nameModal').style.display = 'none'; 
+        }
+        refresh();
+        loop();
+    }
+    function reset() { if(confirm("Hapus semua progress?")) { localStorage.clear(); location.reload(); } }
+
+    init();
+</script>
+</body>
+</html>
